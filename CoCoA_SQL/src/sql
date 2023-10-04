@@ -1,0 +1,957 @@
+
+--------------테이블 생성---------------
+
+--<회원정보 테이블> main 테이블임!!
+CREATE TABLE FRIEND(
+f_name varchar2(50) NOT NULL,
+f_email varchar2(50) PRIMARY KEY,
+f_password varchar2(50) NOT NULL,
+f_phone varchar2(50) NOT NULL,
+f_job varchar2(50) NOT NULL,
+f_recently varchar2(100),
+f_mycourse varchar2(100)
+);
+
+
+--<강의 테이블> main 테이블임!!
+CREATE TABLE lecture(
+l_pk number(10,0) NOT NULL,
+l_code varchar2(50) PRIMARY KEY,
+l_ltype varchar2(50) NOT NULL,
+l_title varchar2(100) NOT NULL,
+l_teacher varchar2(50) NOT NULL,
+l_cost number(6,0) NOT NULL,
+l_time varchar2(50) NOT NULL,
+l_difficulty varchar2(50) NOT NULL,
+l_tag varchar2(1000) NOT NULL,
+l_video varchar2(1000) NOT NULL,
+l_image varchar2(1000) NOT null
+);
+
+
+--<강의상세정보 테이블> (fk)l_code lf_code 
+CREATE TABLE lectureInfo(
+lf_pk number(10,0) PRIMARY KEY,
+lf_code varchar2(50) NOT null,
+lf_lectureTitle varchar2(100) NOT NULL,
+lf_lectureinfo varchar2(1000) NOT NULL,
+lf_firstSkill varchar2(100) NOT NULL,
+lf_secondSkill varchar2(100) NOT NULL,
+lf_thirdSkill varchar2(100),
+lf_forthSkill varchar2(100), 
+lf_teacherTitle varchar2(100) NOT NULL,
+lf_teacherName varchar2(100) NOT NULL, 
+lf_teacherInfo varchar2(1000) NOT NULL,
+lf_curriculumFirstTitle varchar2(100) NOT NULL,
+lf_curriculumSecondTitle varchar2(100),
+lf_curriculumThirdTitle varchar2(100),
+lf_curriculumFirstDetailOne varchar2(100),
+lf_curriculumFirstDetailTwo varchar2(100),
+lf_curriculumFirstDetailThree varchar2(100),
+lf_curriculumSecondDetailOne varchar2(100),
+lf_curriculumSecondDetailTwo varchar2(100),
+lf_curriculumSecondDetailThree varchar2(100),
+lf_curriculumThirdDetailOne varchar2(100),
+lf_curriculumSThirdDetailTwo varchar2(100),
+lf_curriculumSThirdDetailThree varchar2(100),
+lf_reviewFirst varchar2(1000) NOT NULL,
+lf_reviewFirstName varchar2(1000) NOT NULL,
+lf_reviewSecond varchar2(1000) NOT NULL,
+lf_reviewSecondName varchar2(1000) NOT NULL,
+lf_teacherimg varchar2(100) NOT NULL
+);
+
+ALTER TABLE lectureInfo 
+ADD CONSTRAINT fk_lf_code FOREIGN key(lf_code) REFERENCES lecture (l_code);
+
+
+--<별점 테이블> (fk)f_email s_femail , s_code l_code
+CREATE TABLE star(
+s_pk number(10,0) PRIMARY KEY,
+s_femail varchar2(50) NOT null,
+s_code varchar2(50) NOT NULL,
+s_star number(1,0) NOT NULL,
+s_review varchar2(500) NOT NULL
+);
+
+CREATE SEQUENCE STAR_SEQ
+INCREMENT BY 1
+START WITH 1
+MINVALUE 1
+nomaxvalue
+nocycle
+nocache;
+
+ALTER TABLE star 
+ADD CONSTRAINT fk_s_femail FOREIGN key(s_femail) REFERENCES friend (f_email);
+
+ALTER TABLE star 
+ADD CONSTRAINT fk_s_code FOREIGN key(s_code) REFERENCES lecture (l_code);
+
+
+--<좋아요 테이블> (fk)f_email g_femail , g_code l_code
+CREATE TABLE good(
+g_pk number(10,0) PRIMARY KEY,
+g_code varchar2(50) NOT null,
+g_femail varchar2(50) NOT NULL
+);
+
+CREATE SEQUENCE good_seq
+INCREMENT BY 1
+START WITH 1
+MINVALUE 1
+nomaxvalue
+nocycle
+nocache;
+
+ALTER TABLE good 
+ADD CONSTRAINT fk_g_femail FOREIGN key(g_femail) REFERENCES friend (f_email);
+
+ALTER TABLE good 
+ADD CONSTRAINT fk_g_code FOREIGN key(g_code) REFERENCES lecture (l_code);
+
+
+--<장바구니 테이블> (fk)f_email c_femail , c_lcode l_code
+create table cart(
+    c_pk number(10,0) primary key,
+    c_femail varchar2(50) NOT NULL,
+    c_lcode varchar2(50) NOT null
+);
+
+CREATE SEQUENCE cart_seq
+INCREMENT BY 1
+START WITH 1
+MINVALUE 1
+nomaxvalue
+nocycle
+nocache;
+
+ALTER TABLE cart 
+ADD CONSTRAINT fk_c_femail FOREIGN key(c_femail) REFERENCES friend (f_email);
+
+ALTER TABLE cart 
+ADD CONSTRAINT fk_c_lcode FOREIGN key(c_lcode) REFERENCES lecture (l_code);
+
+ALTER TABLE cart
+ADD CONSTRAINT unique_c_femail_c_lcode UNIQUE (c_femail, c_lcode);
+
+
+
+--<결제 테이블> (fk)f_email p_femail , p_lcode l_code
+CREATE TABLE payment(
+    p_pk NUMBER(10,0) PRIMARY KEY,
+    p_femail VARCHAR2(50) NOT NULL,
+    p_lcode varchar2(50) NOT NULL,
+    p_paydate DATE DEFAULT SYSDATE,
+    p_refund CHAR(1) DEFAULT 'F' CHECK (p_refund IN ('T', 'F')),
+    p_refdate DATE,
+    p_recently DATE DEFAULT SYSDATE,
+    p_title VARCHAR2(100)
+);
+
+CREATE SEQUENCE payment_seq
+INCREMENT BY 1
+START WITH 1
+MINVALUE 1
+nomaxvalue
+nocycle
+nocache;
+
+ALTER TABLE payment 
+ADD CONSTRAINT fk_p_femail FOREIGN key(p_femail) REFERENCES friend (f_email);
+
+ALTER TABLE payment 
+ADD CONSTRAINT fk_p_lcode FOREIGN key(p_lcode) REFERENCES lecture (l_code);
+
+-- 트리거 생성(환불일자 생성)
+CREATE OR REPLACE TRIGGER payment_refund_trigger
+BEFORE UPDATE ON payment
+FOR EACH ROW
+BEGIN
+  IF :new.refund = 'T' THEN
+    :new.refdate := sysdate;
+  ELSE
+    :new.refdate := null;
+  END IF;
+END;
+
+
+--<관리자 테이블> 
+CREATE TABLE DIRECTOR(
+d_code number(10,0) PRIMARY KEY,
+d_email varchar2(50)  NOT null,
+d_password varchar2(50) NOT null
+);
+
+
+--<고객센터 테이블> (fk)f_email cs_femail  
+CREATE TABLE csboard (
+    cs_board_idx number(11) PRIMARY KEY,
+    cs_title VARCHAR2(300) NOT NULL,
+    cs_contents varchar2(2000) NOT NULL,
+    cs_hit_cnt number(5) DEFAULT 0 NOT NULL,
+    cs_created_datetime DATE DEFAULT sysdate NOT NULL,
+    cs_creator_id VARCHAR2(50) NOT NULL,
+    cs_updated_datetime DATE DEFAULT sysdate NOT NULL,
+    cs_updater_id VARCHAR2(50) DEFAULT NULL,
+    cs_deleted_yn CHAR(1) DEFAULT 'N' NOT NULL,
+    cs_password VARCHAR2(4) NOT NULL,
+    cs_email VARCHAR2(100) NOT NULL
+); 
+
+ALTER TABLE csboard 
+ADD CONSTRAINT fk_cs_email FOREIGN key(cs_email) REFERENCES friend (f_email);
+
+--COMMENT ON COLUMN [테이블명].[컬럼명] IS '[Comment]';
+
+COMMENT ON COLUMN csboard.cs_board_idx IS '글 번호';
+
+COMMENT ON COLUMN csboard.cs_title IS '제목';
+
+COMMENT ON COLUMN csboard.cs_contents IS '내용';
+
+COMMENT ON COLUMN csboard.cs_hit_cnt IS '조회수';
+
+COMMENT ON COLUMN csboard.cs_created_datetime IS '작성시간';
+
+COMMENT ON COLUMN csboard.cs_creator_id IS '닉네임';
+
+COMMENT ON COLUMN csboard.cs_updated_datetime IS '수정시간';
+
+COMMENT ON COLUMN csboard.cs_updater_id IS '수정자';
+
+COMMENT ON COLUMN csboard.cs_deleted_yn IS '삭제여부';
+
+COMMENT ON COLUMN csboard.cs_password IS '비밀번호';
+
+COMMENT ON COLUMN csboard.cs_email IS '작성자';
+
+CREATE SEQUENCE board_seq
+INCREMENT BY 1
+START WITH 1
+MINVALUE 1
+nomaxvalue
+nocycle
+nocache;
+
+
+--<댓글 테이블> (fk)f_email ar_email
+CREATE TABLE adminreply (
+   ar_seq number(11) PRIMARY KEY,
+   ar_idx number(11) NOT NULL,
+   ar_writer VARCHAR2(50) NOT NULL,
+   ar_created_datetime VARCHAR2(100) NOT NULL,
+   ar_content varchar2(1000) NOT NULL,
+   ar_deleted_yn CHAR(1) DEFAULT 'N' NOT NULL,
+   ar_email VARCHAR2(50) NOT NULL
+);
+
+ALTER TABLE adminreply 
+ADD CONSTRAINT fk_ar_email FOREIGN key(ar_email) REFERENCES friend (f_email);
+
+CREATE SEQUENCE adminreply_seq
+INCREMENT BY 1
+START WITH 1
+MINVALUE 1
+nomaxvalue
+nocycle
+nocache;
+
+
+--<코움터 테이블>
+CREATE TABLE question(
+Q_question NUMBER(10,0) NOT NULL,
+Q_questionTitle varchar2(100) PRIMARY KEY,
+Q_questionContents varchar2(1000) NOT NULL,
+Q_questionKind varchar2(100) NOT NULL,
+Q_questionDATA varchar2(100) ,
+Q_questionIn varchar2(200) NOT NULL,
+Q_questionOut varchar2(200) NOT NULL,
+Q_questionLink varchar2(200) NOT NULL,
+Q_questionDateTime DATE DEFAULT SYSDATE
+);
+
+CREATE SEQUENCE QUESTION_SEQ
+INCREMENT BY 1
+START WITH 1
+MINVALUE 1
+MAXVALUE 999
+NOCYCLE
+NOCACHE
+NOORDER;
+      
+CREATE SEQUENCE QUESTIONJS_SEQ
+INCREMENT BY 1
+START WITH 1000
+MINVALUE 1000
+MAXVALUE 1999
+NOCYCLE
+NOCACHE
+NOORDER;
+      
+CREATE SEQUENCE QUESTIONHTML_SEQ
+INCREMENT BY 1
+START WITH 2000
+MINVALUE 2000
+MAXVALUE 2999
+NOCYCLE
+NOCACHE
+NOORDER;
+      
+CREATE SEQUENCE QUESTIONSQL_SEQ
+INCREMENT BY 1
+START WITH 3000
+MINVALUE 3000
+MAXVALUE 3999
+NOCYCLE
+NOCACHE
+NOORDER;
+      
+CREATE SEQUENCE QUESTIONC_SEQ
+INCREMENT BY 1
+START WITH 4000
+MINVALUE 4000
+MAXVALUE 4999
+NOCYCLE
+NOCACHE
+NOORDER;
+      
+CREATE SEQUENCE QUESTIONPROCESSING_SEQ
+INCREMENT BY 1
+START WITH 5000
+MINVALUE 5000
+MAXVALUE 5999
+NOCYCLE
+NOCACHE
+NOORDER;
+
+
+
+
+
+--------------테이블 조회---------------
+
+SELECT * FROM DIRECTOR;
+
+SELECT * FROM FRIEND;
+
+SELECT * FROM LECTURE;
+
+SELECT * FROM lectureInfo;
+
+SELECT * FROM star;
+
+SELECT * FROM good;
+
+SELECT * FROM csboard ORDER BY cs_board_idx;
+
+SELECT * FROM adminreply ORDER BY ar_seq;
+
+SELECT * FROM cart;
+
+SELECT * FROM payment;
+
+SELECT * FROM QUESTION;
+
+
+	SELECT p.P_PK ,p.P_FEMAIL ,p.P_LCODE, p.P_PAYDATE , l.L_TITLE ,l.L_COST
+	FROM PAYMENT p, LECTURE l
+	WHERE p.P_LCODE = l.L_CODE;
+
+
+UPDATE CSBOARD
+SET CS_CREATOR_ID = '자바'
+WHERE CS_BOARD_IDX =2;
+
+DELETE FROM PAYMENT WHERE P_LCODE  = 'Java01';
+
+
+--------------테이블 더미레코드---------------
+
+
+-- friend
+INSERT INTO friend values('김행복','happy@naver.com', 'happy','010-7894-5612', '개발자', NULL, NULL);
+INSERT INTO friend values('박행운','lucky@naver.com', 'lucky','010-1458-2359', '학생', NULL, NULL);
+INSERT INTO friend values('이최종','final@gmail.com', 'final','010-5823-4725', '개발자', NULL, NULL);
+INSERT INTO friend values('테스트','test@naver.com', 'test','010-1234-5678', '개발자', NULL, NULL);
+INSERT INTO friend values('관리자','admin@cocoa.com', 'admin','010-1234-5678', '개발자', NULL, NULL);
+INSERT INTO friend values('강지윤','jiyun@naver.com', 'jiyun','010-7194-6426', '개발자', NULL, NULL);
+INSERT INTO friend values('김미정','mijeong@naver.com', 'lucky','010-2380-7140', '학생', NULL, NULL);
+INSERT INTO friend values('정세연','seyeon@gmail.com', 'seyeon','010-2247-7538', '개발자', NULL, NULL);
+INSERT INTO friend values('송병권','bg@naver.com', 'bg1234','010-8718-4898', '개발자', NULL, NULL);
+INSERT INTO friend values('LeoKang','kang@cocoa.com', 'kang','010-6565-0817', '개발자', NULL, NULL);
+INSERT INTO friend values('yeonny','yeonny@naver.com', 'yeonny','010-1428-5382', '학생', NULL, NULL);
+
+UPDATE friend
+SET F_PHONE  = '010-2579-4258'
+WHERE F_NAME ='LeoKang';
+
+-- lecture
+INSERT INTO lecture values(1,'Java01', 'JAVA','입문자를 위해 준비한 풀스택코스 웹 개발', 
+'강승진', 200000, '총 10시간 32분', '입문', '#JAVA #CSS #코딩초보 #입문 #비기너 #풀스택' , 'www', '/img');
+
+INSERT INTO lecture values(2,'Java02', 'JAVA', '[실무자용] Chat GPT를 활용한 프로그래밍',
+'김미정', 100000, '총 6시간 10분', '고급', '#JAVA #구글 #chatgpt #고급 #프로그래밍' , 'www', '/img');
+
+INSERT INTO lecture values(3,'Java03', 'JAVA', 'Android - 안드로이드 앱 만들기',
+'강지윤', 150000, '총 8시간 20분', '입문', '#JAVA #구글 #안드로이드 #입문 #앱' , 'www', '/img');
+
+
+-- lectureinfo
+INSERT INTO lectureInfo values(
+1,
+'Java01',
+'입문자를 위해 준비한 풀스택코스 웹 개발', 
+'1년간 300여명의 개발자를 배출한 "진짜" 부트캠프의 고농축 커리큘럼 입니다. 
+이 강의 하나로 여러분은 현업 주니어 개발자 수준까지 성장 가능하며, 
+프론트엔드 기술스택의 활용 능력과 지식을
+ 얻게 될거에요. 
+누구나 사회적, 경제적, 교육적 배경에 상관없이 커리어를 쌓을 수 있도록, [코코아X코드캠프]가 준비했습니다 :)',
+'실무 포트폴리오 2개',
+'최신 기술 스택을 활용한 8개의 프로젝트 구현',
+'전체적인 개발 사이클 완벽 이해',
+'+α 백엔드의 기본 CRUD까지 습득',
+'코코아 최고의 아웃풋 메이커🏅',
+'안녕하세요. Leokang 입니다.',
+'현재 코코아의 메인강사이자 하이미디어 코딩아카데미의 강사로 활동하고 있습니다. 
+네이버 부트캠프 강사로서 수많은 아웃풋을 만들었으며, 토스 페이먼츠 개발팀장으로 일한 경험이 있습니다. 
+"자바실무자 메이킹" 강의를 통해 java expert로 도약하도록 돕겠습니다.',
+'색션 0. 백엔드 강의 소개',
+'색션 1. 백엔드 기초 - 파이썬 알아보기',
+'색션 2. 프론트엔드 기초 - css 알아보기',
+'▶ 강의 인트로',
+'▶ 코딩 바로 시작하기',
+'▶ 강사가 생각하는 소프트웨어 엔지니어링이란?',
+'▶ 강사가 생각하는 파이썬이란?',
+'▶ 파이썬 이론',
+'▶ 파이썬 실습',
+'▶ 강사가 생각하는 css란?',
+'▶ css 이론',
+'▶ css 실습',
+'데이터 사이언스 직무에서 데이터 엔지니어 직무로 전환 하기 위해 신청하였습니다. 
+강의를 통해 실무에서 헷갈렸던 부분에 대해서 명쾌하게 짚어주셨고, 
+데이터 엔지니어의 커리어 이야기, 실제 업무에서 발생하는 문제점 그리고, 
+해당 문제를 해결하기 위해 맥스가 사용하셨던 방안 등을 살펴보면서 기술적인 부분은 물론 그외적인 부분에서도 많은 것을 배울 수 있었습니다. 
+매주 내주신 과제를 풀고 피드백을 받으면서 많이 성장할 수 있었고, 궁금한 점은 언제든지 슬랙에서 실시간으로 피드백받을 수 있어 좋았습니다.
+데이터 엔지니어 직무뿐만이 아닌 데이터 직무로의 커리어를 원하시는 분들 모두에게 추천드리고 싶은 강의입니다.',
+'-미정(4기), 데이터 엔지니어-',
+'스타트업에서 AI 인턴으로 근무하다 엔지니어 전향을 결심을 하고 있던 차에
+ 데이터 엔지니어 오픈 톡방에서 정보를 얻어 수강하게 되었습니다. 
+시니어 개발자분들이 진행하는 엔지니어 강의는 많이 없었는데 참여하면서 큰 도움을 받았습니다. 
+데이터 엔지니어가 하는 업무가 무엇이며, 
+실무에서 어떤 어려움이 있는지, 데이터 인프라는 어떻게 구성하는지에 대해 배울수 있었습니다. 
+또한, 데이터 인프라를 구현하는 과정에서 겪게 되는 어려움과 상황별 Best Practice도 알 수 있었습니다.',
+'-지윤(5기), 인공지능 엔지니어-',
+'/img/teacher01.png'
+);
+
+INSERT INTO lectureInfo values(
+2,
+'Java02',
+'[실무자용] Chat GPT를 활용한 프로그래밍', 
+'개발자라면 친근해져야 할 chat gpt! 개발을 하며 부족한 부분은 chat gpt를 통해 배우고,
+응용 코드까지도 작성할 수 있도록 하는 커리큘럼 입니다. 이 강의를 통해 실무에서도 활용가능한 개발기술과 지식을 얻게될거에요. 
+chat gpt와 친해지고 싶은 현업 개발자 분들을 위해 준비했습니다 :)',
+'chat gpt를 활용한 프로젝트',
+'최신 기술 스택에 대한 이해',
+'chat gpt 개발 사이클 완벽 이해',
+'실무용 개발 라이브러리 활용스킬',
+'google 바드 개발팀 현역강사👓',
+'안녕하세요. 엠제이 입니다.',
+'현재 구글 "바드" 개발팀의 현역으로 일하고 있으며,
+코코아 중급코스 "스프링으로 점프" 강사로 활동하고 있습니다.
+고급개발자로 도약할 수 있도록 점핑스킬을 알려드리는 강의로 뵙겠습니다.',
+'색션 0. Chat Gpt 소개',
+'색션 1. Chat GPT 응용 - 최신 기술스택 적용',
+'색션 2. 프로젝트 완성하기',
+'▶ Chat GPT 인트로',
+'▶ Chat GPT 시작하기',
+'▶ Chat GPT 활용 팁',
+'▶ 최신 기술스택 이론',
+'▶ 최신 기술스택 실습',
+'▶ Chat GPT를 활용한 코드 작성',
+'▶ 백엔드 코드 작성하기',
+'▶ 프론트 Chat GPT 코드 적용',
+'▶ 프로젝트 완성',
+'ChatGPT를 활용해서 더 빠르고 더 정확하게 프로그래밍을 할 수 있어요!
+ChatGPT에게 모르는 부분을 질문하여 코드를 생성하게 할 수 있고 코드 리뷰를 받으며 프로그래밍을 빠르게 할 수 있는 방법을 알 수 있어요.
+코스를 진행하면서 어렴풋이 알고 있던 네이밍, 함수 추상화, OOP, SRP 등등을 코드 리뷰를 통해 깨달을 수 있는 시간이었습니다!
+그리고 실무에서 어떤 방식으로 설계를 하는지도 알 수 있었습니다.
+만약 본인이 설계하고 작성하는 코드들이 좋은 설계이고, 클린 코드인지 확인하고 싶다면, 추천드립니다!',
+'-세연(1기), 우아한 부트캠프 강사-',
+'간단한 웹 서비스 개발 사이클을 이해할 수 있어요!
+웹 서비스 개발의 3단계, 기획 > 구현 > 배포 단계를 경험하여 큰 틀의 개발 사이클을 이해할 수 있어요.
+작은 단위의 요구 사항부터 구현하면서 점점 기능을 늘려나가는 경험을 할 수 있어서 좋았습니다. 
+현업이신 강사님의 실무 중심적인 지식을 얻을 수 있었고, 코드리뷰를 통해 부족한 점과 더 공부하면 좋을 부분을 파악할 수 있어서 좋았습니다.
+내가 원할 때 언제든지 반복적으로 물어봐도 화.내.지.않.고. 친절하게 알려주는 우리의 프로그래밍 사수가 되어 줄 수 있습니다.',
+'-병권(1기), 당근마켓 개발팀-',
+'/img/teacher02.png'
+);
+
+INSERT INTO lectureInfo values(
+3,
+'Java03',
+'Android - 안드로이드 앱 만들기', 
+'모바일 앱 개발을 원한다면? 이제는 앱 개발 시대! 안드로이드 앱에 대한 이해와 앱 제작까지 이루어지는 커리큘럼 입니다.
+ 이 강의를 통해 실제로 작동되는 나만의 앱을 얻게될거에요. 
+안드로이드와 친해지고 싶은 코코아 분들을 위해 준비했습니다 :)',
+'Android Studio를 활용한 프로젝트',
+'최신 기술 스택에 대한 이해',
+'앱 개발 사이클 완벽 이해',
+'실무용 앱개발 라이브러리 활용스킬',
+'함께 발맞추는 따뜻한 강사🌸',
+'유니입니다.',
+'현재 네이버 SNS팀의 네이버블로그파트에서 일하고 있으며,
+코코아에서는 백엔드와 프론트엔드를 함께 배울 수 있는 강의를 제공하고 있습니다.
+같이 한걸음씩 발을 맞추는 강사가 되겠습니다.',
+'색션 0. Android Studio 소개',
+'색션 1. 안드로이드 실무 - 최신 기술스택 적용',
+'색션 2. 프로젝트 완성하기',
+'▶ Android 인트로',
+'▶ Android 시작하기',
+'▶ Android 활용 팁',
+'▶ 최신 기술스택 이론',
+'▶ 최신 기술스택 실습',
+'▶ Android 앱 개발',
+'▶ 코드 작성하기',
+'▶ 추가기능 구현하기',
+'▶ 프로젝트 완성',
+'Android Studio 활용해서 더 빠르고 더 정확하게 프로그래밍을 할 수 있어요!
+모르는 부분은 강사님께 질문하여 코드를 쉽게 이해하여 스스로 프로그래밍을 하는 방법을 알 수 있어요.
+코스를 진행하면서 어렴풋이 알고 있던 앱 개발을 세심하게 깨달을 수 있는 시간이었습니다!
+그리고 실무에서 어떤 방식으로 설계를 하는지도 알 수 있었습니다.
+만약 본인이 설계하고 작성하는 코드들이 좋은 설계이고, 클린 코드인지 확인하고 싶다면, 추천드립니다!',
+'-사희(3기), 코코아 회원-',
+'간단한 앱 개발 사이클을 이해할 수 있어요!
+웹 개발의 3단계, 기획 > 구현 > 배포 단계를 경험하여 큰 틀의 개발 사이클을 이해할 수 있어요.
+작은 단위의 요구 사항부터 구현하면서 점점 기능을 늘려나가는 경험을 할 수 있어서 좋았습니다. 
+현업이신 강사님의 실무 중심적인 지식을 얻을 수 있었고, 코드리뷰를 통해 부족한 점과 더 공부하면 좋을 부분을 파악할 수 있어서 좋았습니다.
+내가 원할 때 언제든지 반복적으로 물어봐도 화내지않고 친절하게 알려주는 우리의 프로그래밍 사수가 되어 줄 수 있습니다.',
+'-웅기(3기), 코코아 회원-',
+'/img/teacher03.png'
+);
+
+
+-- 메인페이지 뿌리기용 별점리뷰
+INSERT INTO star VALUES(STAR_SEQ.NEXTVAL, 'happy@naver.com', 'Java01', 5, '제가 모르는 부분을 콕콕 찝어 정말 잘 알려주시네요 굿이에용');
+INSERT INTO star VALUES(STAR_SEQ.NEXTVAL, 'lucky@naver.com', 'Java02', 3, '저한테는 너무 어려운 강의였어요ㅠ 더 공부해볼게요.');
+INSERT INTO star VALUES(STAR_SEQ.NEXTVAL, 'final@gmail.com', 'Java03', 4, '강사님이 너무 친절하시고 이해가 잘가요! 추천합니다.');
+
+
+-- 코움터 더미
+
+INSERT INTO question(
+    Q_question,
+    Q_questionTitle,
+    Q_questionContents,
+    Q_questionKind,
+    Q_questionIn,
+    Q_questionOut,
+    Q_questionLink,
+    Q_questiondata
+)
+VALUES (
+   QUESTION_SEQ.NEXTVAL,
+    '두 정수 더하기(A+B)',
+    '두 개의 정수를 입력 받아 두 수를 더한 결과를 출력하세요 ',
+    'Java',
+    '15 2',
+    '17',
+    'CoCoA',
+    '/file/두 정수 더하기.hwp' 
+);
+
+INSERT INTO question(
+    Q_question,
+    Q_questionTitle,
+    Q_questionContents,
+    Q_questionKind,
+    Q_questionIn,
+    Q_questionOut,
+    Q_questionLink,
+    Q_questiondata
+)
+VALUES (
+   QUESTION_SEQ.NEXTVAL,
+    '두 정수 빼기(A-B)',
+    '두 개의 정수를 입력 받아 두 수를 뺀 결과를 출력하세요 ',
+    'Java',
+    '8 2',
+    '6',
+    'CoCoA',
+    '/file/두 정수 빼기.hwp' 
+);
+
+INSERT INTO question(
+    Q_question,
+    Q_questionTitle,
+    Q_questionContents,
+    Q_questionKind,
+    Q_questionIn,
+    Q_questionOut,
+    Q_questionLink,
+    Q_questiondata
+)
+VALUES (
+   QUESTION_SEQ.NEXTVAL,
+    '두 정수 곱하기(A*B)',
+    '두 개의 정수를 입력 받아 두 수를 곱한 결과를 출력하세요 ',
+    'Java',
+    '10 4',
+    '40',
+    'CoCoA',
+    '/file/두 정수 곱하기.hwp' 
+);
+
+INSERT INTO question(
+    Q_question,
+    Q_questionTitle,
+    Q_questionContents,
+    Q_questionKind,
+    Q_questionIn,
+    Q_questionOut,
+    Q_questionLink,
+    Q_questiondata
+)
+VALUES (
+   QUESTION_SEQ.NEXTVAL,
+    '두 정수 나누기(A/B)',
+    '두 개의 정수를 입력 받아 두 수를 나눈 결과를 출력하세요 ',
+    'Java',
+    '6 2',
+    '3',
+    'CoCoA',
+    '/file/두 정수 나누기.hwp' 
+);
+
+INSERT INTO question(
+    Q_question,
+    Q_questionTitle,
+    Q_questionContents,
+    Q_questionKind,
+    Q_questionIn,
+    Q_questionOut,
+    Q_questionLink,
+    Q_questiondata
+)
+VALUES (
+   QUESTIONJS_SEQ.NEXTVAL,
+    '배열 삭제(POP)',
+    '다음 배열에서 400, 500를 삭제하는 code를 입력하세요.',
+    'JavaScript',
+    'var nums = [100, 200, 300, 400, 500]',
+    'nums = [100, 200, 300]',
+    'CoCoA',
+    '/file/배열 삭제.hwp' 
+);
+
+INSERT INTO question(
+    Q_question,
+    Q_questionTitle,
+    Q_questionContents,
+    Q_questionKind,
+    Q_questionIn,
+    Q_questionOut,
+    Q_questionLink,
+    Q_questiondata
+)
+VALUES (
+   QUESTIONHTML_SEQ.NEXTVAL,
+    'text를 이용하여 구구단을 만들어보자',
+    'script를 같이 사용하여 구구단을 만들어보자 ',
+    'Html/Css',
+    '입력 : a * b =',
+    '출력 : c',
+    'CoCoA',
+    '/file/text를 이용하여 구구단을 만들어보자.hwp' 
+);
+
+INSERT INTO question(
+    Q_question,
+    Q_questionTitle,
+    Q_questionContents,
+    Q_questionKind,
+    Q_questionIn,
+    Q_questionOut,
+    Q_questionLink,
+    Q_questiondata
+)
+VALUES (
+   QUESTIONSQL_SEQ.NEXTVAL,
+    '테이블 만들기',
+    'CoCoA라는 테이블을 만드세요',
+    'SQL',
+    'CREATE',
+    'CoCoA Table 생성 완료',
+    'CoCoA',
+    '/file/테이블 만들기.hwp' 
+);
+
+INSERT INTO question(
+    Q_question,
+    Q_questionTitle,
+    Q_questionContents,
+    Q_questionKind,
+    Q_questionIn,
+    Q_questionOut,
+    Q_questionLink,
+    Q_questiondata
+)
+VALUES (
+   QUESTIONC_SEQ.NEXTVAL,
+    '세 수',
+    '세 정수 A, B, C가 주어진다. 두 번째로 큰 정수를 출력하는 프로그램을 작성하시오.',
+    'C',
+    '20 30 10',
+    '20',
+    'CoCoA',
+    '/file/세 수.hwp' 
+);
+
+INSERT INTO question(
+    Q_question,
+    Q_questionTitle,
+    Q_questionContents,
+    Q_questionKind,
+    Q_questionIn,
+    Q_questionOut,
+    Q_questionLink,
+    Q_questiondata
+)
+VALUES (
+   QUESTIONPROCESSING_SEQ.NEXTVAL,
+    '정보처리 문제1',
+    '악성코드의 유형 중 다른 컴퓨터의 취약점을 이용하여 스스로 전파하거나 메일로 전파되며 스스로를 증식하는 것은?',
+    'InformationProcessing',
+    '없습니다.',
+    '없습니다.',
+    'CoCoA',
+    '/file/정보처리 문제1.hwp' 
+);
+
+-- 장바구니 더미
+INSERT INTO cart values(cart_seq.nextval, 'test@naver.com', 'Java02');
+
+-- 결제 더미
+INSERT INTO PAYMENT (p_pk, p_femail, p_lcode, p_title)
+values(payment_seq.nextval, 'test@naver.com',  'Java03', 'Android - 안드로이드 앱 만들기');
+
+INSERT INTO PAYMENT (p_pk, p_femail, p_lcode, p_title)
+values(payment_seq.nextval, 'test@naver.com',  'Java01', '입문자를 위해 준비한 풀스택코스 웹 개발');
+
+DELETE FROM PAYMENT WHERE p_lcode='Java01';
+
+
+
+
+--------------드랍,딜리트---------------
+
+DROP TABLE NOTICE;
+DROP SEQUENCE NOTICE_SEQ;
+
+DROP TABLE TEACHER;
+
+DROP TABLE star;
+
+DROP TABLE good;
+
+DROP TABLE FRIEND;
+
+DROP TABLE cart;
+
+DROP TABLE payment;
+
+DROP TABLE LECTUREINFO;
+
+DROP TABLE LECTURE;
+
+DROP TABLE ADMINREPLY;
+
+DROP TABLE CSBOARD;
+
+DROP SEQUENCE ADMINREPLY_SEQ;
+
+DROP SEQUENCE board_SEQ;
+
+DROP SEQUENCE cart_SEQ;
+
+DROP SEQUENCE good_SEQ;
+
+DROP SEQUENCE payment_SEQ;
+
+DROP SEQUENCE star_SEQ;
+
+DROP SEQUENCE lecture_SEQ;
+
+
+--------------테이블 조회(상세)--------------
+
+SELECT DISTINCT c_femail, c_lcode
+FROM cart;
+
+SELECT cs_board_idx, cs_title, cs_contents, cs_hit_cnt,
+TO_CHAR(cs_created_datetime, 'YYYY.MM.DD HH24:MI:SS') AS cs_created_datetime,
+cs_creator_id
+from csboard
+WHERE cs_password = 1234 AND cs_creator_id = 'loginId';
+
+SELECT cs_board_idx 
+from csboard
+WHERE cs_password = 1234 AND cs_creator_id = 'loginId';
+
+SELECT cs_board_idx, cs_title, cs_contents, cs_hit_cnt,
+TO_CHAR(cs_created_datetime, 'YYYY.MM.DD HH24:MI:SS') AS cs_created_datetime,
+cs_creator_id
+from 
+(SELECT * 
+from csboard
+WHERE cs_password = 1234)
+WHERE cs_board_idx = 1 AND cs_deleted_yn = 'N';
+
+SELECT
+    cs_board_idx,
+    cs_title,
+    cs_hit_cnt,
+    TO_CHAR(cs_created_datetime, 'YYYY.MM.DD HH24:MI:SS') AS cs_created_datetime
+FROM
+    csboard
+WHERE
+    cs_deleted_yn = 'N'
+ORDER BY
+    cs_board_idx DESC;
+   
+SELECT * FROM LECTURE
+WHERE l_code='Java01';  
+   
+select board_seq.currval from dual;
+
+SELECT cs_board_idx, cs_title, cs_contents, cs_hit_cnt, 
+ TO_CHAR(cs_created_datetime, 'YYYY.MM.DD HH24:MI:SS') AS cs_created_datetime,cs_creator_id
+FROM csboard 
+WHERE cs_board_idx = 3 AND cs_deleted_yn = 'N'
+
+
+
+
+
+--------------연습용 쿼리들---------------
+
+-- mj@naver.com 아이디인 사람의 결제 목록 + 강의이름, 강의가격 
+SELECT a.p_pk
+     , a.p_FEMAIL
+     , a.p_lcode
+     , b.l_cost
+     , b.l_TITLE
+  FROM payment a
+ INNER JOIN lecture b
+    ON a.p_lcode = b.l_CODE 
+ WHERE a.p_FEMAIL = 'mj@naver.com' AND a.P_LCODE = 'Java02'
+
+ 
+SELECT * FROM payment WHERE P_FEMAIL = 'mj@naver.com' AND P_LCODE = 'Java02';
+
+select * from payment where p_femail = 'mj@naver.com';
+
+SELECT p.*
+     , l.*
+     , lf.*
+  FROM payment p
+  LEFT OUTER JOIN lecture l
+    ON p.P_PK  = l.L_PK 
+  LEFT OUTER JOIN LECTUREINFO lf
+    ON p.P_PK = lf.LF_PK  ;
+    
+SELECT lf.*
+     , l.*
+     , p.*
+     , c.*
+  FROM LECTUREINFO lf
+  LEFT OUTER JOIN lecture l
+    ON lf.LF_PK  = l.L_PK 
+  LEFT OUTER JOIN PAYMENT p
+    ON lf.LF_PK = p.P_PK
+  LEFT OUTER JOIN cart c 
+  	ON lf.LF_PK = c.c_PK;    
+
+SELECT a.p_pk
+     , a.p_FEMAIL
+     , a.p_lcode
+     , b.l_cost
+     , b.l_TITLE
+  FROM payment a
+ INNER JOIN LECTUREINFO b
+    ON a.p_lcode = b.lf_CODE 
+ WHERE a.p_FEMAIL = 'mj@naver.com' AND a.P_LCODE = 'Java02';
+ 
+ 
+SELECT *
+FROM
+    LECTUREINFO lf 
+JOIN
+    cart c ON lf.lf_code = c.C_LCODE 
+JOIN
+    PAYMENT p ON p.P_LCODE = lf.lf_code 
+WHERE
+    p.P_LCODE = 'Java02'; 
+  
+   
+SELECT star.s_star, star.s_review
+FROM lecture
+INNER JOIN star ON lecture.L_CODE = star.s_code
+WHERE lecture.L_CODE='1';
+ 
+-- mj@naver.com 아이디인 사람의 장바구니 목록 + 강의이름, 강의가격 
+SELECT c_lcode, l_cost, L_TITLE 
+FROM (SELECT a.c_pk
+     , a.C_FEMAIL
+     , a.c_lcode
+     , b.l_cost
+     , b.L_TITLE 
+  FROM cart a
+ INNER JOIN lecture b
+    ON a.c_lcode = b.l_CODE 
+ WHERE a.C_FEMAIL = 'mj@naver.com')
+
+SELECT *
+FROM LECTURE l
+INNER join LECTUREINFO lf
+ON l.l_code = lf.lf_code
+WHERE l.l_ltype = 'JAVA';
+
+SELECT *
+  FROM LECTURE l
+     , LECTUREINFO lf
+ WHERE l.l_code = lf.lf_code;
+
+CREATE SEQUENCE lecture_seq
+INCREMENT BY 1
+START WITH 1
+MINVALUE 1
+nomaxvalue
+nocycle
+nocache;
+
+INSERT INTO lecture(code, ltype, title, teacher, cost, video, image) 
+VALUES(code_sq.nextval,'자바', 'Hello, Java!', '강승진', 200000, 
+'https://www.youtube.com/watch?v=NQq0dOoEPUM', 'C:\seyeon\2ndProj\img\java');
+
+INSERT INTO lecture(code, ltype, title, teacher, cost, video, image) 
+VALUES(code_sq.nextval,'자바스크립트', '함수형 프로그래밍과 Java Script', '유니', 285000,
+'https://www.youtube.com/watch?v=NQq0dOoEPUM', 'C:\seyeon\2ndProj\img\javascript');
+
+SELECT * FROM FRIEND
+WHERE
+F_EMAIL = 'n' AND F_PASSWORD = 'n';
+
+INSERT INTO payment (code, uemail)
+VALUES (2, 'yyy');
+
+UPDATE payment
+SET refund = 'T'incumbent
+WHERE UEMAIL='sss';
+
+DELETE FROM good;
+
+SELECT p.P_PK ,p.P_FEMAIL ,p.P_LCODE, p.P_PAYDATE , l.L_TITLE ,l.L_COST 
+FROM PAYMENT p, LECTURE l 
+WHERE p.P_LCODE = l.L_CODE 
